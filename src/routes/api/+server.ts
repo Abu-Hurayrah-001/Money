@@ -1,11 +1,9 @@
-// IMPORTS.
 import { json } from "@sveltejs/kit";
 
-// HOMEPAGE OF THE BACKEND.
 export function GET() {
     const data = {
         success: true,
-        message: 'Welcome to our backend.',
+        message: 'Welcome to our backend homepage.',
     };
 
     return json(data, { status: 200 });
