@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"@prisma/client": "^6.5.0",
+		"resend": "^4.2.0",
 		"svelte-email-tailwind": "^2.1.1"
 	}
 }
