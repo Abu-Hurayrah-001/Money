@@ -1,5 +1,5 @@
 import { RESEND_API_KEY } from "$env/static/private";
-import { json, error } from "@sveltejs/kit";
+import { json } from "@sveltejs/kit";
 import { Resend } from "resend";
 import { render } from "svelte/server";
 import OTPemail from "$lib/emails/OTPemail.svelte";
@@ -12,9 +12,7 @@ type RequestData = {
 };
 
 const requestSchema = z.object({
-    email: z.string()
-        .min(1, "Email is required")
-        .email("Invalid email address")
+    email: z.string().email("Invalid email address")
 });
 
 const resend = new Resend(RESEND_API_KEY);
@@ -22,15 +20,19 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000);
 
 export async function POST({ request }: RequestEvent) {
     try {
+        // Validate request data.
         const requestData: RequestData = await request.json();
         const validationResult = requestSchema.safeParse(requestData);
         if (!validationResult.success) {
             const validationError = validationResult.error.errors[0]?.message || "Invalid email address";
-            throw error(400, validationError);
+            return json({
+                success: false,
+                message: validationError,
+            }, {status: 400});
         };
 
         const OTP = generateOTP();
-        const OTPexpiry = new Date(Date.now() + 30 * 1000); // 30 seconds extra for OTP expiry.
+        const OTPexpiry = new Date(Date.now() + 45 * 1000); // 45 seconds extra for OTP expiry.
         
         // Update the user if email exists or create a new user if email does not exist.
         const user = await prisma.user.upsert({
@@ -43,6 +45,7 @@ export async function POST({ request }: RequestEvent) {
             },
         });
 
+        // Send the OTP via email.
         const { body } = render( OTPemail, { props: { OTP } });
         const { error: resendError } = await resend.emails.send({
             from: "Acme <onboarding@resend.dev>",
@@ -52,9 +55,13 @@ export async function POST({ request }: RequestEvent) {
         });
         if ( resendError ) {
             console.error(resendError);
-            throw error(500, resendError);
+            return json({
+                success: false,
+                message: resendError,
+            }, { status: 500 });
         };
 
+        // Send response.
         return json({
             success: true,
             message: "OTP sent successfully",
@@ -62,6 +69,9 @@ export async function POST({ request }: RequestEvent) {
         }, {status: 200});
     } catch (err) {
         console.error(err);
-        throw error(500, "An error ocurred while sending OTP");
+        return json({
+            success: false,
+            message: "An error ocurred while sending OTP",
+        }, { status: 500 });
     };
 };
