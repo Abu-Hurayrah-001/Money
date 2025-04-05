@@ -1,4 +1,4 @@
-import { RESEND_API_KEY } from "$env/static/private";
+import { RESEND_API_KEY, RESEND_EMAIL } from "$env/static/private";
 import { json } from "@sveltejs/kit";
 import { Resend } from "resend";
 import { render } from "svelte/server";
@@ -12,13 +12,13 @@ type RequestData = {
 };
 
 const requestSchema = z.object({
-    email: z.string().email("Invalid email address")
+    email: z.string().email("Invalid email address"),
 });
 
 const resend = new Resend(RESEND_API_KEY);
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000);
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request }: RequestEvent): Promise<Response> {
     try {
         // Validate request data.
         const requestData: RequestData = await request.json();
@@ -32,7 +32,7 @@ export async function POST({ request }: RequestEvent) {
         };
 
         const OTP = generateOTP();
-        const OTPexpiry = new Date(Date.now() + 45 * 1000); // 45 seconds extra for OTP expiry.
+        const OTPexpiry = new Date(Date.now() + 10 * 60 * 1000); // 45 seconds extra for OTP expiry.
         
         // Update the user if email exists or create a new user if email does not exist.
         const user = await prisma.user.upsert({
@@ -45,10 +45,10 @@ export async function POST({ request }: RequestEvent) {
             },
         });
 
-        // Send the OTP via email.
+        // Send the OTP to email.
         const { body } = render( OTPemail, { props: { OTP } });
         const { error: resendError } = await resend.emails.send({
-            from: "Acme <onboarding@resend.dev>",
+            from: RESEND_EMAIL,
             to: requestData.email,
             subject: "Your login OTP code",
             html: body,
@@ -71,7 +71,7 @@ export async function POST({ request }: RequestEvent) {
         console.error(err);
         return json({
             success: false,
-            message: "An error ocurred while sending OTP",
+            message: "An unknown error has occured.",
         }, { status: 500 });
     };
 };
