@@ -1,8 +1,8 @@
 import { type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
 
-const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
+const rateLimitMap = new Map<string, { requestCount: number; lastRequestTime: number }>();
 const GLOBAL_LIMIT = 100; // Maximum requests per IP.
-const WINDOWS_MS = 10 * 60 * 1000; // 10 minutes window.
+const WINDOWS_MS = 10 * 60 * 1000; // 10 minutes window for GLOBAL_LIMIT reset.
 
 export async function handle({
     event,
@@ -15,28 +15,28 @@ export async function handle({
     ) => Promise<Response> 
 }): Promise<Response> {
     const clientIP = event.getClientAddress();
-    console.log(clientIP)
     const currentTime = Date.now();
 
+    // Reset the client request record or update it.
     let record = rateLimitMap.get(clientIP);
-    if (!record || currentTime - record.lastRequest > WINDOWS_MS) {
+    if (!record || currentTime - record.lastRequestTime > WINDOWS_MS) {
         record = {
-            count: 1,
-            lastRequest: currentTime,
+            requestCount: 1,
+            lastRequestTime: currentTime,
         };
     } else {
-        record.count++;
-        record.lastRequest = currentTime;
+        record.requestCount++;
+        record.lastRequestTime = currentTime;
     };
     rateLimitMap.set(clientIP, record);
 
     // If the request count exceeds the global limit, return 429.
-    if (record.count > GLOBAL_LIMIT) {
+    if (record.requestCount > GLOBAL_LIMIT) {
         return new Response(JSON.stringify({
             success: false,
-            message: "Too many requests. Try again later.",
+            message: `Too many requests. Try again in ${WINDOWS_MS / 60000} minutes.`,
         }), { status: 429 });
     };
-
+    
     return resolve(event);
 };
