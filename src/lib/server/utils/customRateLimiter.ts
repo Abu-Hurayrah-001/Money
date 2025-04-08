@@ -1,6 +1,6 @@
 type RateLimitOptions = {
     limit: number;
-    windowsMs: number;
+    windowMs: number;
 };
 
 const memoryRateLimitStore = new Map<
@@ -21,7 +21,7 @@ export function customRateLimit(
     // Reset the client request record or update it.
     const routeMap = memoryRateLimitStore.get(routeKey);
     let record = routeMap?.get(clientIP);
-    if (!record || currentTime - record.lastRequestTime > opts.windowsMs) {
+    if (!record || currentTime - record.lastRequestTime > opts.windowMs) {
         record = {
             requestCount: 1,
             lastRequestTime: currentTime,
@@ -36,7 +36,7 @@ export function customRateLimit(
     if (record.requestCount > opts.limit) {
         return {
             limited: true,
-            message: `Too many requests. Try again in ${opts.windowsMs / 60000} minutes.`,
+            message: `Too many requests. Try again in ${opts.windowMs / 60000} minutes.`,
         };
     };
 

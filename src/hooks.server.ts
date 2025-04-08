@@ -2,7 +2,7 @@ import { type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
 
 const rateLimitMap = new Map<string, { requestCount: number; lastRequestTime: number }>();
 const GLOBAL_LIMIT = 100; // Maximum requests per IP.
-const WINDOWS_MS = 10 * 60 * 1000; // 10 minutes window for GLOBAL_LIMIT reset.
+const WINDOW_MS = 10 * 60 * 1000; // 10 minutes window for GLOBAL_LIMIT reset.
 
 export async function handle({
     event,
@@ -19,7 +19,7 @@ export async function handle({
 
     // Reset the client request record or update it.
     let record = rateLimitMap.get(clientIP);
-    if (!record || currentTime - record.lastRequestTime > WINDOWS_MS) {
+    if (!record || currentTime - record.lastRequestTime > WINDOW_MS) {
         record = {
             requestCount: 1,
             lastRequestTime: currentTime,
@@ -34,7 +34,7 @@ export async function handle({
     if (record.requestCount > GLOBAL_LIMIT) {
         return new Response(JSON.stringify({
             success: false,
-            message: `Too many requests. Try again in ${WINDOWS_MS / 60000} minutes.`,
+            message: `Too many requests. Try again in ${WINDOW_MS / 60000} minutes.`,
         }), { status: 429 });
     };
     

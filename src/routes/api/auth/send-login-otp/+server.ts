@@ -6,6 +6,7 @@ import OTPemail from "$lib/emails/OTPemail.svelte";
 import prisma from "$lib/db";
 import type { RequestEvent } from "./$types";
 import { z } from "zod";
+import { customRateLimit } from "$lib/server/utils/customRateLimiter";
 
 type RequestData = {
     email: string;
@@ -18,9 +19,23 @@ const requestSchema = z.object({
 const resend = new Resend(RESEND_API_KEY);
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000);
 
-export async function POST({ request }: RequestEvent): Promise<Response> {
+export async function POST(event: RequestEvent): Promise<Response> {
     try {
+        // Custom rate limiting.
+        const clientIP = event.getClientAddress();
+        const { limited, message } = customRateLimit(clientIP, "send-login-otp", {
+            limit : 10,
+            windowMs: 10 * 60 * 1000
+        });
+        if (limited) {
+            return json({
+                success: false,
+                message,
+            }, { status: 429 });
+        };
+
         // Validate request data.
+        const request = event.request;
         const requestData: RequestData = await request.json();
         const validationResult = requestSchema.safeParse(requestData);
         if (!validationResult.success) {
