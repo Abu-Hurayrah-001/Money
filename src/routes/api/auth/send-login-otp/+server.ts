@@ -80,7 +80,6 @@ export async function POST(event: RequestEvent): Promise<Response> {
         return json({
             success: true,
             message: "OTP sent successfully",
-            userId: user.id,
         }, {status: 200});
     } catch (err) {
         console.error(err);
