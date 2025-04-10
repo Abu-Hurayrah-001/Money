@@ -50,7 +50,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
         const OTPexpiry = new Date(Date.now() + 10 * 60 * 1000); // 45 seconds extra for OTP expiry.
         
         // Update the user if email exists or create a new user if email does not exist.
-        const user = await prisma.user.upsert({
+        await prisma.user.upsert({
             where: { email: requestData.email },
             update: { OTP, OTPexpiry },
             create: { 

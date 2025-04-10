@@ -42,6 +42,29 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
         };
 
         // Verify entered OTP.
+        if (requestData.OTP != user.OTP) {
+            return json({
+                success: false,
+                message: "OTP is incorrect.",
+            }, { status: 401 });
+        };
+
+        // Update OTP expiry time in db.
+        const currentTime = Date.now();
+        const OTPexpiryTime = user.OTPexpiry.valueOf();
+        if (currentTime > OTPexpiryTime) {
+            return json({
+                success: false,
+                message: "OTP has expired.",
+            });
+        } else {
+            // Ensuring user can't enter same OTP again.
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { OTPexpiry: new Date() },
+            });
+        };
+
         
     } catch (error) {
         console.error(error);
