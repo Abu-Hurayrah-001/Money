@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import { z } from "zod";
 import prisma from "$lib/db";
+import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, NODE_ENV } from "$env/static/private";
 import jwt from "jsonwebtoken";
 import type { RequestEvent } from "./$types";
 
@@ -42,7 +43,7 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
         };
 
         // Verify entered OTP.
-        if (requestData.OTP != user.OTP) {
+        if (requestData.OTP !== user.OTP) {
             return json({
                 success: false,
                 message: "OTP is incorrect.",
@@ -56,7 +57,7 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
             return json({
                 success: false,
                 message: "OTP has expired.",
-            });
+            }, { status: 401 });
         } else {
             // Ensuring user can't enter same OTP again.
             await prisma.user.update({
@@ -65,7 +66,35 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
             });
         };
 
-        
+        // Refresh token setup.
+        const refreshToken = jwt.sign(
+            { id: user.id },
+            REFRESH_TOKEN_SECRET,
+            { expiresIn: "7d" },
+        );
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { refreshToken },
+        });
+        cookies.set("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7, // 7 days.
+        });
+
+        // Access Token setup.
+        const accessToken = jwt.sign(
+            { id: user.id },
+            ACCESS_TOKEN_SECRET,
+            { expiresIn: "5m" }
+        );
+        return json({
+            success: true,
+            message: "Logged in successfully.",
+            accessToken,
+        });
     } catch (error) {
         console.error(error);
         return json({
