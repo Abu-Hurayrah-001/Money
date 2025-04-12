@@ -14,29 +14,37 @@ export async function handle({
         opts?: ResolveOptions,
     ) => Promise<Response> 
 }): Promise<Response> {
-    const clientIP = event.getClientAddress();
-    const currentTime = Date.now();
+    try {
+        const clientIP = event.getClientAddress();
+        const currentTime = Date.now();
 
-    // Reset the client request record or update it.
-    let record = rateLimitMap.get(clientIP);
-    if (!record || currentTime - record.lastRequestTime > WINDOW_MS) {
-        record = {
-            requestCount: 1,
-            lastRequestTime: currentTime,
+        // Reset the client request record or update it.
+        let record = rateLimitMap.get(clientIP);
+        if (!record || currentTime - record.lastRequestTime > WINDOW_MS) {
+            record = {
+                requestCount: 1,
+                lastRequestTime: currentTime,
+            };
+        } else {
+            record.requestCount++;
+            record.lastRequestTime = currentTime;
         };
-    } else {
-        record.requestCount++;
-        record.lastRequestTime = currentTime;
-    };
-    rateLimitMap.set(clientIP, record);
+        rateLimitMap.set(clientIP, record);
 
-    // If the request count exceeds the global limit, return 429.
-    if (record.requestCount > GLOBAL_LIMIT) {
+        // If the request count exceeds the global limit, return 429.
+        if (record.requestCount > GLOBAL_LIMIT) {
+            return new Response(JSON.stringify({
+                success: false,
+                message: `Too many requests. Try again in ${WINDOW_MS / 60000} minutes.`,
+            }), { status: 429 });
+        };
+        
+        return resolve(event);
+    } catch (error) {
+        console.error("Error during global request handling:", error);
         return new Response(JSON.stringify({
             success: false,
-            message: `Too many requests. Try again in ${WINDOW_MS / 60000} minutes.`,
-        }), { status: 429 });
+            message: "Internal server error.",
+        }), { status: 500 });
     };
-    
-    return resolve(event);
 };

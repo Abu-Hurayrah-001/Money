@@ -6,7 +6,7 @@ import OTPemail from "$lib/emails/OTPemail.svelte";
 import prisma from "$lib/db";
 import type { RequestEvent } from "./$types";
 import { z } from "zod";
-import { customRateLimit } from "$lib/server/utils/customRateLimiter";
+import customRateLimit from "$lib/server/utils/customRateLimiter";
 
 type RequestData = {
     email: string;
@@ -81,8 +81,8 @@ export async function POST(event: RequestEvent): Promise<Response> {
             success: true,
             message: "OTP sent successfully",
         }, {status: 200});
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error("Error sending login OTP:", error);
         return json({
             success: false,
             message: "An unknown error has occured.",

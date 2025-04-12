@@ -8,7 +8,7 @@ const memoryRateLimitStore = new Map<
     Map<string, { requestCount: number; lastRequestTime: number }>
 >();
 
-export function customRateLimit(
+export default function customRateLimit(
     routeKey: string,
     clientIP: string,
     opts: RateLimitOptions,

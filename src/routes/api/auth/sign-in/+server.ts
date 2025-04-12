@@ -4,6 +4,8 @@ import prisma from "$lib/db";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, NODE_ENV } from "$env/static/private";
 import jwt from "jsonwebtoken";
 import type { RequestEvent } from "./$types";
+import { createHash } from "crypto";
+import hashToken from "$lib/hashToken";
 
 type RequestData = {
     email: string;
@@ -72,9 +74,10 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
             REFRESH_TOKEN_SECRET,
             { expiresIn: "7d" },
         );
+        const hashedRefreshToken = hashToken(refreshToken);
         await prisma.user.update({
             where: { id: user.id },
-            data: { refreshToken },
+            data: { refreshToken: hashedRefreshToken },
         });
         cookies.set("refreshToken", refreshToken, {
             httpOnly: true,
@@ -96,7 +99,7 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
             accessToken,
         });
     } catch (error) {
-        console.error(error);
+        console.error("Error signing in:", error);
         return json({
             success: false,
             message: "An unknown error has occured."
