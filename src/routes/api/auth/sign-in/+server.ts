@@ -87,7 +87,7 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
             maxAge: 60 * 60 * 24 * 7, // 7 days.
         });
 
-        // Access Token setup.
+        // Sending the access token.
         const accessToken = jwt.sign(
             { id: user.id },
             ACCESS_TOKEN_SECRET,
