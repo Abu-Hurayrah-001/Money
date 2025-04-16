@@ -85,7 +85,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
         console.error("Error sending login OTP:", error);
         return json({
             success: false,
-            message: "An unknown error has occured.",
+            message: "Error sending login OTP.",
         }, { status: 500 });
     };
 };

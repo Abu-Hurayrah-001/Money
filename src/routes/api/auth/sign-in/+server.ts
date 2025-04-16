@@ -102,7 +102,7 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
         console.error("Error signing in:", error);
         return json({
             success: false,
-            message: "An unknown error has occured."
+            message: "Error signing in."
         }, { status: 500 });
     };
 };

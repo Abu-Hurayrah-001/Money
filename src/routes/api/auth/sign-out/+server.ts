@@ -1,6 +1,6 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import jwt from "jsonwebtoken";
-import { REFRESH_TOKEN_SECRET, ACCESS_TOKEN_SECRET, NODE_ENV } from "$env/static/private";
+import { REFRESH_TOKEN_SECRET } from "$env/static/private";
 import prisma from "$lib/db";
 import hashToken from "$lib/hashToken";
 
@@ -11,14 +11,14 @@ type RefreshTokenData = {
 export async function POST({ cookies }: RequestEvent): Promise<Response> {
     try {
         // Retrieve the refreesh token from cookie.
-        const refreshToken = cookies.get("refreshToken") as string;
+        const refreshToken = cookies.get("refreshToken");
         if (!refreshToken) {
             return json({
                 success: false,
                 message: "No refresh token provided.",
             }, { status: 401 });
         };
-
+        
         // Verify the refresh token.
         const decoded = jwt.verify(refreshToken as string, REFRESH_TOKEN_SECRET);
 
@@ -41,41 +41,15 @@ export async function POST({ cookies }: RequestEvent): Promise<Response> {
             }, { status: 401 });
         };
 
-        // Update db with new refresh token.
-        const newRefreshToken = jwt.sign(
-            { id },
-            REFRESH_TOKEN_SECRET,
-            { expiresIn: "7d" },
-        );
-        const hashedNewRefreshToken = hashToken(newRefreshToken);
+        // Clear refresh token form db and cookie.
         await prisma.user.update({
             where: { id },
-            data: { refreshToken: hashedNewRefreshToken },
+            data: { refreshToken: null },
         });
-        cookies.set("refreshToken", newRefreshToken, {
-            httpOnly: true,
-            secure: NODE_ENV === "production",
-            sameSite: "strict",
-            path: "/",
-            maxAge: 60 * 60 * 24 * 7, // 7 days.
-        });
+        cookies.delete("refreshToken", { path: "/" });
 
-        // Sending a new access token.
-        const newAccessToken = jwt.sign(
-            { id: user.id },
-            ACCESS_TOKEN_SECRET,
-            { expiresIn: "5m" }
-        );
-        return json({
-            success: true,
-            message: "Tokens refreshed successfully.",
-            accessToken: newAccessToken,
-        });
+        // Sending response.
     } catch (error) {
-        console.error("Error refreshing tokens:", error);
-        return json({
-            success: false,
-            message: "Error refreshing tokens."
-        }, { status: 500 });  
+        cookies.delete("refreshToken", { path: "/" });
     };
 };
