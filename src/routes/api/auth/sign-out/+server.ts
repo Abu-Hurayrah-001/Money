@@ -9,8 +9,9 @@ type RefreshTokenData = {
 };
 
 export async function POST({ cookies }: RequestEvent): Promise<Response> {
+    let id: string | undefined
     try {
-        // Retrieve the refreesh token from cookie.
+        // Retrieve the refresh token from cookie.
         const refreshToken = cookies.get("refreshToken");
         if (!refreshToken) {
             return json({
@@ -23,9 +24,10 @@ export async function POST({ cookies }: RequestEvent): Promise<Response> {
         const decoded = jwt.verify(refreshToken as string, REFRESH_TOKEN_SECRET);
 
         // Retrieve user using the token's data.
-        const id = (decoded as RefreshTokenData).id;
+        id = (decoded as RefreshTokenData).id;
         const user = await prisma.user.findUnique({ where: { id } });
         if (!user) {
+            cookies.delete("refreshToken", { path: "/" });
             return json({
                 success: false,
                 message: "User not found.",
@@ -35,6 +37,11 @@ export async function POST({ cookies }: RequestEvent): Promise<Response> {
         // Hash the refresh token and compare it with the hashed refresh token in db.
         const hashedRefreshToken = hashToken(refreshToken);
         if (user.refreshToken !== hashedRefreshToken) {
+            await prisma.user.update({
+                where: { id },
+                data: { refreshToken: null },
+            });
+            cookies.delete("refreshToken", { path: "/" });
             return json({
                 success: false,
                 message: "Refresh token mismatch.",
@@ -48,8 +55,24 @@ export async function POST({ cookies }: RequestEvent): Promise<Response> {
         });
         cookies.delete("refreshToken", { path: "/" });
 
+        // TODO - Don't forget to remove access token from local storage via frontend.
+
         // Sending response.
+        return json({
+            success: true,
+            message: "Logged out successfully.",
+        }, { status: 200 });
     } catch (error) {
+        if (id) {
+            await prisma.user.update({
+                where: { id },
+                data: { refreshToken: null },
+            });
+        };
         cookies.delete("refreshToken", { path: "/" });
+        return json({
+            success: false,
+            message: "Error signing out."
+        }, { status: 500 });
     };
 };
