@@ -1,8 +1,13 @@
+type AccessTokenData = {
+    id: string;
+    role: string;
+};
+
 declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			userId?: string;
+			user?: AccessTokenData;
 		};
 		// interface PageData {}
 		// interface PageState {}

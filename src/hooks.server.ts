@@ -8,6 +8,7 @@ const WINDOW_MS = 10 * 60 * 1000; // 10 minutes window for GLOBAL_LIMIT reset.
 
 type AccessTokenData = {
     id: string;
+    role: string;
 };
 
 export async function handle({
@@ -55,11 +56,20 @@ export async function handle({
         if (accessToken) {
             try {
                 const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
-                event.locals.userId = (decoded as AccessTokenData).id;
+                event.locals.user = decoded as AccessTokenData;
             } catch (error) {
-                
-            }
+                event.locals.userId = null;
+            };
         };
+
+        // Define protected routes.
+        const loginProtectedRoutes = ["/user", "/api/user", "/api/auth/refresh-tokens", "/api/auth/sign-out"];
+        const adminProtectedRoutes = ["/admin", "/api/admin"];
+        const publicOnlyRoutes = ["/login", "/api/auth/send-login-otp", "/api/auth/sign-in"];
+
+        // Route protection logic.
+        const isLoginProtected = loginProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
+
 
         return resolve(event);
     } catch (error) {

@@ -13,6 +13,7 @@ model User {
 	email     		String   	@unique
 	OTP       		Int
 	OTPexpiry		DateTime
+	role			String		@default("User")
 	refreshToken	String?
 	createdAt		DateTime	@default(now())
 }
