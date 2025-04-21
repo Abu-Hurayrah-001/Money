@@ -1,4 +1,4 @@
-import { type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
+import { redirect, type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_SECRET } from "$env/static/private";
 
@@ -58,7 +58,7 @@ export async function handle({
                 const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
                 event.locals.user = decoded as AccessTokenData;
             } catch (error) {
-                event.locals.userId = null;
+                event.locals.user= null;
             };
         };
 
@@ -67,9 +67,40 @@ export async function handle({
         const adminProtectedRoutes = ["/admin", "/api/admin"];
         const publicOnlyRoutes = ["/login", "/api/auth/send-login-otp", "/api/auth/sign-in"];
 
-        // Route protection logic.
-        const isLoginProtected = loginProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
+        // Find protection type.
+        const isLoginProtectedRoute = loginProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
+        const isAdminProtectedRoute = adminProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
+        const ispublicOnlyRoute = publicOnlyRoutes.some((r) => event.url.pathname.startsWith(r));
 
+        // Apply protection.
+        if (isLoginProtectedRoute && !event.locals.user) {
+            if (event.url.pathname.startsWith("/api")) {
+                return new Response(JSON.stringify({
+                    success: false,
+                    message: "Only logged-in users allowed.",
+                }), { status: 401 });
+            } else {
+                throw redirect(303, "/login");
+            };
+        };
+        if (isAdminProtectedRoute && event.locals.user?.role !== "Admin") {
+            if (event.url.pathname.startsWith("/api")) {
+                return new Response(JSON.stringify({
+                    success: false,
+                    message: "Only admins allowed.",
+                }), { status: 403 });
+            } else {
+                throw redirect(303, "/profile");
+            };
+        };
+        if (ispublicOnlyRoute && event.locals.user) {
+            if (event.url.pathname.startsWith("/api")) {
+                return new Response(JSON.stringify({
+                    success: false,
+                    message: "Only logged-out users allowed.",
+                }), { status: 403 });
+            };
+        };
 
         return resolve(event);
     } catch (error) {
