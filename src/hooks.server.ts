@@ -1,4 +1,4 @@
-import { redirect, type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
+import { redirect, type Redirect, type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_SECRET } from "$env/static/private";
 
@@ -24,10 +24,10 @@ export async function handle({
     try {
         // 1. GLOBAL RATE LIMITING. ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        const clientIP = event.getClientAddress();
+        const clientIP = event.getClientAddress() ?? "unknown";
         const currentTime = Date.now();
 
-        // Reset the client request record or update it.
+        // (a). Reset the client request record or update it.
         let record = rateLimitMap.get(clientIP);
         if (!record || currentTime - record.lastRequestTime > WINDOW_MS) {
             record = {
@@ -40,7 +40,7 @@ export async function handle({
         };
         rateLimitMap.set(clientIP, record);
 
-        // If the request count exceeds the global limit, return 429.
+        // (b). If the request count exceeds the global limit, return 429.
         if (record.requestCount > GLOBAL_LIMIT) {
             return new Response(JSON.stringify({
                 success: false,
@@ -50,7 +50,7 @@ export async function handle({
 
         // 2. ROUTE PROTECTION. /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        // Authentication state.
+        // (a). Authentication state.
         const authHeader = event.request.headers.get("authorization");
         const accessToken = authHeader?.split(' ')[1];
         if (accessToken) {
@@ -58,21 +58,21 @@ export async function handle({
                 const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
                 event.locals.user = decoded as AccessTokenData;
             } catch (error) {
-                event.locals.user= null;
+                // Do nothing, LOL!!
             };
         };
 
-        // Define protected routes.
+        // (b). Define protected routes.
         const loginProtectedRoutes = ["/user", "/api/user", "/api/auth/refresh-tokens", "/api/auth/sign-out"];
         const adminProtectedRoutes = ["/admin", "/api/admin"];
         const publicOnlyRoutes = ["/login", "/api/auth/send-login-otp", "/api/auth/sign-in"];
 
-        // Find protection type.
+        // (c). Find protection type.
         const isLoginProtectedRoute = loginProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
         const isAdminProtectedRoute = adminProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
-        const ispublicOnlyRoute = publicOnlyRoutes.some((r) => event.url.pathname.startsWith(r));
+        const isPublicOnlyRoute = publicOnlyRoutes.some((r) => event.url.pathname.startsWith(r));
 
-        // Apply protection.
+        // (d). Apply protection.
         if (isLoginProtectedRoute && !event.locals.user) {
             if (event.url.pathname.startsWith("/api")) {
                 return new Response(JSON.stringify({
@@ -93,7 +93,7 @@ export async function handle({
                 throw redirect(303, "/profile");
             };
         };
-        if (ispublicOnlyRoute && event.locals.user) {
+        if (isPublicOnlyRoute && event.locals.user) {
             if (event.url.pathname.startsWith("/api")) {
                 return new Response(JSON.stringify({
                     success: false,
@@ -104,6 +104,12 @@ export async function handle({
 
         return resolve(event);
     } catch (error) {
+        // (a). Necessary for redirection to be successful.
+        if ((error as Redirect).status === 303) {
+            throw error;
+        };
+
+        // (b). General error handling.
         console.error("Error during global request handling:", error);
         return new Response(JSON.stringify({
             success: false,
