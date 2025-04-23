@@ -4,7 +4,6 @@ import prisma from "$lib/db";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, NODE_ENV } from "$env/static/private";
 import jwt from "jsonwebtoken";
 import type { RequestEvent } from "./$types";
-import { createHash } from "crypto";
 import hashToken from "$lib/hashToken";
 
 type RequestData = {
@@ -89,9 +88,12 @@ export async function POST({ request, cookies }: RequestEvent): Promise<Response
 
         // Sending the access token.
         const accessToken = jwt.sign(
-            { id: user.id },
+            { 
+                id: user.id,
+                role: user.role,
+             },
             ACCESS_TOKEN_SECRET,
-            { expiresIn: "5m" }
+            { expiresIn: "5m" },
         );
         return json({
             success: true,

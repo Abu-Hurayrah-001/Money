@@ -3,10 +3,7 @@ import jwt from "jsonwebtoken";
 import { REFRESH_TOKEN_SECRET, ACCESS_TOKEN_SECRET, NODE_ENV } from "$env/static/private";
 import prisma from "$lib/db";
 import hashToken from "$lib/hashToken";
-
-type RefreshTokenData = {
-    id: string;
-};
+import { type RefreshTokenData } from "$lib/types/auth";
 
 export async function POST({ cookies }: RequestEvent): Promise<Response> {
     let id: string | undefined;
@@ -69,9 +66,12 @@ export async function POST({ cookies }: RequestEvent): Promise<Response> {
 
         // Sending a new access token.
         const newAccessToken = jwt.sign(
-            { id: user.id },
+            {
+                id: user.id,
+                role: user.role,
+            },
             ACCESS_TOKEN_SECRET,
-            { expiresIn: "5m" }
+            { expiresIn: "5m" },
         );
         return json({
             success: true,

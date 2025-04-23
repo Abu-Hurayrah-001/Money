@@ -1,7 +1,4 @@
-type AccessTokenData = {
-    id: string;
-    role: string;
-};
+import { type AccessTokenData } from "$lib/types/auth";
 
 declare global {
 	namespace App {

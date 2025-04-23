@@ -3,10 +3,7 @@ import jwt from "jsonwebtoken";
 import { REFRESH_TOKEN_SECRET } from "$env/static/private";
 import prisma from "$lib/db";
 import hashToken from "$lib/hashToken";
-
-type RefreshTokenData = {
-    id: string;
-};
+import { type RefreshTokenData } from "$lib/types/auth";
 
 export async function POST({ cookies }: RequestEvent): Promise<Response> {
     let id: string | undefined

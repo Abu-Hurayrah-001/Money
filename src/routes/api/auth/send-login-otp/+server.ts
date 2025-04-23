@@ -6,7 +6,7 @@ import OTPemail from "$lib/emails/OTPemail.svelte";
 import prisma from "$lib/db";
 import type { RequestEvent } from "./$types";
 import { z } from "zod";
-import customRateLimit from "$lib/server/utils/customRateLimiter";
+import customRateLimit from "$lib/rateLimiters/customRateLimiter";
 
 type RequestData = {
     email: string;
