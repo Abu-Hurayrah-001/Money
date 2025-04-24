@@ -3,56 +3,59 @@ import type { AccessTokenData } from "./types/auth";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_SECRET } from "$env/static/private";
 
+const loginProtectedRoutes = ["/user", "/api/user", "/api/auth/refresh-tokens", "/api/auth/sign-out"];
+const adminProtectedRoutes = ["/admin", "/api/admin"];
+const publicOnlyRoutes = ["/login", "/api/auth/send-login-otp", "/api/auth/sign-in"];
+
+function apiResponse(
+    success: boolean,
+    message: string,
+    status: number,
+) {
+    return new Response(JSON.stringify({
+        success,
+        message,
+    }), { status });
+};
+
 export default function routeProtector(event: RequestEvent): Response | null {
     // Authentication state.
-    const authHeader = event.request.headers.get("authorization");
-    const accessToken = authHeader?.split(' ')[1];
-    if (accessToken) {
+    const [scheme, token] = (event.request.headers.get("authorization") ?? "").split(" ");
+    if (scheme === "Bearer" && token) {
         try {
-            const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
+            const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
             event.locals.user = decoded as AccessTokenData;
         } catch (error) {
             // Do nothing, LOL!!
         };
     };
 
-    // Define protected routes.
-    const loginProtectedRoutes = ["/user", "/api/user", "/api/auth/refresh-tokens", "/api/auth/sign-out"];
-    const adminProtectedRoutes = ["/admin", "/api/admin"];
-    const publicOnlyRoutes = ["/login", "/api/auth/send-login-otp", "/api/auth/sign-in"];
-
     // Find protection type.
-    const isLoginProtectedRoute = loginProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
-    const isAdminProtectedRoute = adminProtectedRoutes.some((r) => event.url.pathname.startsWith(r));
-    const isPublicOnlyRoute = publicOnlyRoutes.some((r) => event.url.pathname.startsWith(r));
+    const path = event.url.pathname
+    const isLoginProtectedRoute = loginProtectedRoutes.some((r) => path.startsWith(r));
+    const isAdminProtectedRoute = adminProtectedRoutes.some((r) => path.startsWith(r));
+    const isPublicOnlyRoute = publicOnlyRoutes.some((r) => path.startsWith(r));
 
     // Apply protection.
+    if (isPublicOnlyRoute && event.locals.user) {
+        if (event.url.pathname.startsWith("/api")) {
+            return apiResponse(false, "Only logged-out users allowed.", 403);
+        } else {
+            throw redirect(303, "/user/profile");
+        };
+    };
     if (isLoginProtectedRoute && !event.locals.user) {
         if (event.url.pathname.startsWith("/api")) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: "Only logged-in users allowed.",
-            }), { status: 401 });
+            return apiResponse(false, "Only logged-in users allowed.", 401);
         } else {
-            throw redirect(303, "/login");
+            throw redirect(303, "/auth/login");
         };
     };
     if (isAdminProtectedRoute && event.locals.user?.role !== "Admin") {
         if (event.url.pathname.startsWith("/api")) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: "Only admins allowed.",
-            }), { status: 403 });
+            return apiResponse(false, "Only admins allowed.", 403);
         } else {
-            throw redirect(303, "/profile");
-        };
-    };
-    if (isPublicOnlyRoute && event.locals.user) {
-        if (event.url.pathname.startsWith("/api")) {
-            return new Response(JSON.stringify({
-                success: false,
-                message: "Only logged-out users allowed.",
-            }), { status: 403 });
+            throw redirect(303, "/user/profile");
         };
     };
 
