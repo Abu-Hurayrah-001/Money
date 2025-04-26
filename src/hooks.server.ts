@@ -1,6 +1,6 @@
-import { redirect, type Redirect, type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
-import globalRateLimiter from "$lib/rateLimiters/globalRateLimiter";
-import routeProtector from "$lib/routeProtectior";
+import { json, type Redirect, type RequestEvent, type ResolveOptions } from "@sveltejs/kit";
+import globalRateLimiter from "$lib/server/rateLimiters/globalRateLimiter";
+import routeProtector from "$lib/server/routeProtector";
 
 export async function handle({
     event,
@@ -13,11 +13,11 @@ export async function handle({
     ) => Promise<Response> 
 }): Promise<Response> {
     try {
-        // Global rate limiting
+        // Global rate limiting.
         const globalRateLimiterResponse = globalRateLimiter(event);
         if (globalRateLimiterResponse) return globalRateLimiterResponse;
         
-        // Route protection
+        // Route protection.
         const routeProtectorResponse = routeProtector(event);
         if (routeProtectorResponse) return routeProtectorResponse;
 
@@ -30,9 +30,9 @@ export async function handle({
 
         // General error handling.
         console.error("Error during global request handling:", error);
-        return new Response(JSON.stringify({
+        return json({
             success: false,
             message: "Internal server error.",
-        }), { status: 500 });
+        }, { status: 500 });
     };
 };

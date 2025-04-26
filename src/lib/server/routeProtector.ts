@@ -1,29 +1,29 @@
-import { redirect, type RequestEvent } from "@sveltejs/kit";
+import { json, redirect, type RequestEvent } from "@sveltejs/kit";
 import type { AccessTokenData } from "./types/auth";
 import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_SECRET } from "$env/static/private";
 
-const loginProtectedRoutes = ["/user", "/api/user", "/api/auth/refresh-tokens", "/api/auth/sign-out"];
-const adminProtectedRoutes = ["/admin", "/api/admin"];
-const publicOnlyRoutes = ["/login", "/api/auth/send-login-otp", "/api/auth/sign-in"];
+const loginProtectedRoutes = ["/api/user", "/api/auth-protected"];
+const adminProtectedRoutes = ["/api/admin"];
+const publicOnlyRoutes = ["/api/auth-not-protected"];
 
 function apiResponse(
     success: boolean,
     message: string,
     status: number,
 ) {
-    return new Response(JSON.stringify({
+    return json({
         success,
         message,
-    }), { status });
+    }, { status });
 };
 
 export default function routeProtector(event: RequestEvent): Response | null {
     // Authentication state.
-    const [scheme, token] = (event.request.headers.get("authorization") ?? "").split(" ");
-    if (scheme === "Bearer" && token) {
+    const [scheme, accessToken] = (event.request.headers.get("authorization") ?? "").split(" ");
+    if (scheme === "Bearer" && accessToken) {
         try {
-            const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
+            const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
             event.locals.user = decoded as AccessTokenData;
         } catch (error) {
             // Do nothing, LOL!!

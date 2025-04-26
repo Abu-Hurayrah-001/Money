@@ -2,11 +2,11 @@ import { RESEND_API_KEY, RESEND_EMAIL } from "$env/static/private";
 import { json } from "@sveltejs/kit";
 import { Resend } from "resend";
 import { render } from "svelte/server";
-import OTPemail from "$lib/emails/OTPemail.svelte";
-import prisma from "$lib/db";
+import OTPemail from "$lib/server/emails/OTPemail.svelte";
+import prisma from "$lib/server/db";
 import type { RequestEvent } from "./$types";
 import { z } from "zod";
-import customRateLimit from "$lib/rateLimiters/customRateLimiter";
+import customRateLimit from "$lib/server/rateLimiters/customRateLimiter";
 
 type RequestData = {
     email: string;

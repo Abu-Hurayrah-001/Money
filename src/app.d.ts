@@ -1,4 +1,4 @@
-import { type AccessTokenData } from "$lib/types/auth";
+import { type AccessTokenData } from "$lib/server/types/auth";
 
 declare global {
 	namespace App {

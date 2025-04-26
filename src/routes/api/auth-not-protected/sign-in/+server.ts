@@ -1,10 +1,10 @@
 import { json } from "@sveltejs/kit";
 import { z } from "zod";
-import prisma from "$lib/db";
+import prisma from "$lib/server/db";
 import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, NODE_ENV } from "$env/static/private";
 import jwt from "jsonwebtoken";
 import type { RequestEvent } from "./$types";
-import hashToken from "$lib/hashToken";
+import hashToken from "$lib/server/hashToken";
 
 type RequestData = {
     email: string;

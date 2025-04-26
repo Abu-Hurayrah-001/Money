@@ -1,4 +1,4 @@
-import type { RequestEvent } from "@sveltejs/kit";
+import { json, type RequestEvent } from "@sveltejs/kit";
 
 const rateLimitMap = new Map<string, { requestCount: number; lastRequestTime: number }>();
 const GLOBAL_LIMIT = 100;
@@ -24,10 +24,10 @@ export default function globalRateLimiter(event: RequestEvent): Response | null 
 
     // If the request count exceeds the global limit, return 429.
     if (record.requestCount > GLOBAL_LIMIT) {
-        return new Response(JSON.stringify({
+        return json({
             success: false,
             message: `Too many requests. Try again in ${WINDOW_MS / 60000} minutes.`,
-        }), { status: 429 });
+        }, { status: 429 });
     };
 
     return null;

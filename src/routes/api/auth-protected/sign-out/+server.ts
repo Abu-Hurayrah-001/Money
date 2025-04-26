@@ -1,9 +1,9 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
 import jwt from "jsonwebtoken";
 import { REFRESH_TOKEN_SECRET } from "$env/static/private";
-import prisma from "$lib/db";
-import hashToken from "$lib/hashToken";
-import { type RefreshTokenData } from "$lib/types/auth";
+import prisma from "$lib/server/db";
+import hashToken from "$lib/server/hashToken";
+import { type RefreshTokenData } from "$lib/server/types/auth";
 
 export async function POST({ cookies }: RequestEvent): Promise<Response> {
     let id: string | undefined
