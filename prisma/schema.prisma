@@ -7,7 +7,7 @@ datasource db {
 	url      = env("DATABASE_URL")
 }
 
-// User model.	
+// User model.
 model User {
 	id        		String   	@id @default(uuid())
 	email     		String   	@unique
@@ -17,3 +17,24 @@ model User {
 	refreshToken	String?
 	createdAt		DateTime	@default(now())
 }
+
+// Course model.
+model Course {
+	id					String		@id @default(uuid())
+	title				String		
+	slug				String		@unique
+	shortDescription	String
+	longDescription		String
+	thumbnailUrl		String?
+	price				Float		@default(0)
+	currency			String		@default("USD")
+	category			String?
+	tags				String[]	@default([])
+	language			String		@default("English")
+	level				String		@default("Beginner")
+	isPublished			Boolean		@default(false)
+	createdAt			DateTime	@default(now())
+	updatedAt			DateTime	@updatedAt
+	modules				Module[]	@relation(onDelete: Cascade)
+}
+
