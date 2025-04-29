@@ -28,13 +28,34 @@ model Course {
 	thumbnailUrl		String?
 	price				Float		@default(0)
 	currency			String		@default("USD")
-	category			String?
+	category			String
 	tags				String[]	@default([])
 	language			String		@default("English")
-	level				String		@default("Beginner")
+	level				String
 	isPublished			Boolean		@default(false)
 	createdAt			DateTime	@default(now())
 	updatedAt			DateTime	@updatedAt
-	modules				Module[]	@relation(onDelete: Cascade)
+	modules				Module[]
 }
 
+model Module {
+	id					String		@id @default(uuid())
+	course    			Course		@relation(fields: [courseId], references: [id], onDelete: Cascade)
+	courseId			String
+	title				String
+	shortDescription	String
+	order				Int			@default(0)
+	createdAt			DateTime	@default(now())
+	lessons				Lesson[]
+}
+
+model Lesson {
+	id					String		@id @default(uuid())
+	module				Module		@relation(fields: [moduleId], references: [id], onDelete: Cascade)
+	moduleId			String
+	title				String
+	videoUrl			String?
+	duration			Int
+	order				Int			@default(0)
+	createdAt			DateTime	@default(now())
+}
