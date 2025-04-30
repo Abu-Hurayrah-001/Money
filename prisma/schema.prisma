@@ -21,7 +21,7 @@ model User {
 // Course model.
 model Course {
 	id					String		@id @default(uuid())
-	title				String		
+	title				String
 	slug				String		@unique
 	shortDescription	String
 	longDescription		String
@@ -32,7 +32,6 @@ model Course {
 	tags				String[]	@default([])
 	language			String		@default("English")
 	level				String
-	isPublished			Boolean		@default(false)
 	createdAt			DateTime	@default(now())
 	updatedAt			DateTime	@updatedAt
 	modules				Module[]
@@ -43,7 +42,7 @@ model Module {
 	course    			Course		@relation(fields: [courseId], references: [id], onDelete: Cascade)
 	courseId			String
 	title				String
-	shortDescription	String
+	description			String
 	order				Int			@default(0)
 	createdAt			DateTime	@default(now())
 	lessons				Lesson[]
